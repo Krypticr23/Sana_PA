@@ -1,0 +1,17 @@
+[Unit]
+Description=SANA Personal AI Agent
+After=network.target ollama.service
+Requires=ollama.service
+
+[Service]
+Type=simple
+User=REPLACE_WITH_YOUR_USERNAME
+WorkingDirectory=/mnt/ssd/sana/backend
+ExecStart=/mnt/ssd/sana/backend/venv/bin/python main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
