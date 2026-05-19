@@ -3,7 +3,7 @@ from typing import Optional
 from agent.memory import MemoryManager
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "llama3.2:1b"
+MODEL = "qwen2.5:14b"
 
 SYSTEM_PROMPT = """You are SANA, a personal AI assistant running privately on a local server.
 You help the user with:
@@ -28,12 +28,24 @@ class AgentCore:
         messages.extend(history)
         messages.append({"role": "user", "content": message})
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(OLLAMA_URL, json={
-                "model": MODEL,
-                "messages": messages,
-                "stream": False
-            })
+        payload = {
+            "model": MODEL,
+            "messages": messages,
+            "stream": False
+        }
+
+        # Debug logging
+        print(f"[DEBUG] OLLAMA_URL = '{OLLAMA_URL}'")
+        print(f"[DEBUG] OLLAMA_URL length = {len(OLLAMA_URL)}")
+        print(f"[DEBUG] OLLAMA_URL repr = {repr(OLLAMA_URL)}")
+        print(f"[DEBUG] MODEL = '{MODEL}'")
+        print(f"[DEBUG] Payload messages count = {len(messages)}")
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(OLLAMA_URL, json=payload)
+            print(f"[DEBUG] Final URL hit: {response.request.url}")
+            print(f"[DEBUG] Response status: {response.status_code}")
+            print(f"[DEBUG] Response body: {response.text[:500]}")
             response.raise_for_status()
             data = response.json()
 

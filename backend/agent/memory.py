@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path("/mnt/ssd/sana/data/sana.db")
+DB_PATH = Path("/Users/krishna/sana-server/data/sana.db")
 
 
 class MemoryManager:
