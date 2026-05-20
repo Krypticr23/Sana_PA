@@ -3,7 +3,8 @@ from typing import Optional
 from agent.memory import MemoryManager
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen2.5:14b"
+import os
+MODEL = os.getenv("SANA_MODEL", "llama3.2:1b")
 
 SYSTEM_PROMPT = """You are SANA, a personal AI assistant running privately on a local server.
 You help the user with:
