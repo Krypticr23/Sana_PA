@@ -1,9 +1,26 @@
+import os
 import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path("/Users/krishna/sana-server/data/sana.db")
+def _resolve_db_path() -> Path:
+    """Pick a DB location that works on whatever machine we're running on.
+
+    Priority:
+      1. SANA_DB_PATH env var (explicit override).
+      2. The Jetson's always-on SSD, when /mnt/ssd exists.
+      3. ~/sana-server/data (the Mac location used so far — keeps existing data).
+    """
+    env = os.environ.get("SANA_DB_PATH")
+    if env:
+        return Path(env).expanduser()
+    if Path("/mnt/ssd").exists():
+        return Path("/mnt/ssd/sana/data/sana.db")
+    return Path.home() / "sana-server" / "data" / "sana.db"
+
+
+DB_PATH = _resolve_db_path()
 
 
 class MemoryManager:
@@ -84,3 +101,34 @@ class MemoryManager:
                 LIMIT 20
             """, (user_id,)).fetchall()
         return [{"id": r[0], "created_at": r[1], "preview": r[2][:60]} for r in rows]
+
+    def delete_conversation(self, user_id: str, conversation_id: str) -> bool:
+        """Delete one conversation (and its messages). Returns False if it
+        doesn't exist or doesn't belong to this user."""
+        with sqlite3.connect(DB_PATH) as conn:
+            owns = conn.execute(
+                "SELECT 1 FROM conversations WHERE id = ? AND user_id = ?",
+                (conversation_id, user_id),
+            ).fetchone()
+            if not owns:
+                return False
+            conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
+            conn.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+            conn.commit()
+        return True
+
+    def delete_all_conversations(self, user_id: str) -> int:
+        """Delete all of a user's conversations (and their messages).
+        Returns how many conversations were removed."""
+        with sqlite3.connect(DB_PATH) as conn:
+            ids = [
+                r[0]
+                for r in conn.execute(
+                    "SELECT id FROM conversations WHERE user_id = ?", (user_id,)
+                ).fetchall()
+            ]
+            for cid in ids:
+                conn.execute("DELETE FROM messages WHERE conversation_id = ?", (cid,))
+            conn.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
+            conn.commit()
+        return len(ids)
